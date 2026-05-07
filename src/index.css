@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@400;700&family=Creepster&family=Nosifer&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-game: "Press Start 2P", system-ui;
+  --font-sans: "Quicksand", system-ui;
+  --font-horror: "Creepster", cursive;
+  --font-scary: "Nosifer", cursive;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-100 font-sans cursor-default overflow-hidden;
+  }
+}
+
+@layer components {
+  .pixel-border {
+    @apply border-4 border-red-900 shadow-[4px_4px_0_0_#7f1d1d];
+  }
+
+  .cute-button {
+    @apply bg-red-700 text-white px-6 py-3 rounded-2xl font-bold
+           transition-all duration-200 active:scale-95 hover:bg-red-800
+           border-b-4 border-red-950 shadow-lg;
+  }
+
+  .game-canvas {
+    image-rendering: pixelated;
+    @apply w-full h-full bg-slate-900;
+  }
+  
+  .horror-text {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(220, 38, 38, 0.5);
+  }
+  
+  .blood-drip {
+    animation: drip 3s ease-in-out infinite;
+  }
+}
+
+/* Custom Animations */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.8); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes drip {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(20px); opacity: 0; }
+}
+
+.pixel-aura {
+  animation: bob 2s ease-in-out infinite;
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.glow-animation {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.flicker-animation {
+  animation: flicker 0.3s ease-in-out infinite;
+}
+
+.shake-animation {
+  animation: shake 0.5s ease-in-out infinite;
+}
