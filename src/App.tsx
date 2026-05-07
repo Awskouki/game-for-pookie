@@ -51,6 +51,10 @@ export default function App() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [lastWrongAnswer, setLastWrongAnswer] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [screenShake, setScreenShake] = useState(0);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   
   const [player, setPlayer] = useState<PlayerState>({
     x: 50, y: GROUND_Y, velocityY: 0, health: 5, maxHealth: 5, // More health!
@@ -63,6 +67,13 @@ export default function App() {
   const [currentCheckpoint, setCurrentCheckpoint] = useState<{x: number, y: number, score: number} | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const keysPressed = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (screenShake > 0) {
+      const timer = setTimeout(() => setScreenShake(0), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [screenShake]);
 
   useEffect(() => { audioSystem.initialize(); }, []);
   
@@ -83,33 +94,54 @@ export default function App() {
 
   useEffect(() => {
     if (gameState === 'playing' && !currentLevel) {
-      const level = generateLevel(progress.currentLevel);
-      setCurrentLevel(level);
-      setUnlockedGates([]);
+      setIsLoading(true);
+      setLoadingProgress(0);
       
-      // Check if there's a checkpoint to restore
-      if (progress.lastCheckpoint && progress.lastCheckpoint.gateId > 0) {
-        setPlayer(prev => ({ 
-          ...prev, 
-          x: progress.lastCheckpoint!.x, 
-          y: GROUND_Y, 
-          score: progress.lastCheckpoint!.score, 
-          health: 5, 
-          canDoubleJump: true 
-        }));
-        // Unlock gates up to checkpoint
-        const unlockedGateIds = Array.from({length: progress.lastCheckpoint.gateId}, (_, i) => i + 1);
-        setUnlockedGates(unlockedGateIds);
-        setCurrentCheckpoint({
-          x: progress.lastCheckpoint.x,
-          y: GROUND_Y,
-          score: progress.lastCheckpoint.score
+      // Simulate loading progress
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
         });
-      } else {
-        // Start fresh
-        setPlayer(prev => ({ ...prev, x: 50, y: GROUND_Y, score: 0, health: 5, canDoubleJump: true, lives: 3 }));
-        setCurrentCheckpoint(null);
-      }
+      }, 50);
+      
+      // Generate level
+      setTimeout(() => {
+        const level = generateLevel(progress.currentLevel);
+        setCurrentLevel(level);
+        setUnlockedGates([]);
+        
+        // Check if there's a checkpoint to restore
+        if (progress.lastCheckpoint && progress.lastCheckpoint.gateId > 0) {
+          setPlayer(prev => ({ 
+            ...prev, 
+            x: progress.lastCheckpoint!.x, 
+            y: GROUND_Y, 
+            score: progress.lastCheckpoint!.score, 
+            health: 5, 
+            canDoubleJump: true 
+          }));
+          const unlockedGateIds = Array.from({length: progress.lastCheckpoint.gateId}, (_, i) => i + 1);
+          setUnlockedGates(unlockedGateIds);
+          setCurrentCheckpoint({
+            x: progress.lastCheckpoint.x,
+            y: GROUND_Y,
+            score: progress.lastCheckpoint.score
+          });
+        } else {
+          setPlayer(prev => ({ ...prev, x: 50, y: GROUND_Y, score: 0, health: 5, canDoubleJump: true, lives: 3 }));
+          setCurrentCheckpoint(null);
+        }
+        
+        setLoadingProgress(100);
+        setTimeout(() => {
+          setIsLoading(false);
+          clearInterval(progressInterval);
+        }, 300);
+      }, 500);
     }
   }, [gameState, progress.currentLevel, currentLevel, progress.lastCheckpoint]);
 
@@ -318,7 +350,9 @@ export default function App() {
         setCurrentPuzzle(puzzle);
         setShowHint(false);
         setWrongAttempts(0);
-        setPuzzleTimer(20); // Start 20 second timer
+        // Set timer based on difficulty
+        const timerDuration = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15;
+        setPuzzleTimer(timerDuration);
         return;
       }
     }
@@ -354,6 +388,7 @@ export default function App() {
         if (!isInvincible) {
           // Damage and knockback
           nextX = x - 80; // Push player back
+          setScreenShake(10); // Screen shake!
           setPlayer(prev => {
             const newHealth = prev.health - 1;
             if (newHealth <= 0) {
@@ -372,7 +407,7 @@ export default function App() {
             return { ...prev, health: newHealth };
           });
           if (soundEnabled) audioSystem.playSound('hurt');
-          particleSystemRef.current.emit(x + PLAYER_SIZE / 2, y + PLAYER_SIZE / 2, 8, 'hurt');
+          particleSystemRef.current.emit(x + PLAYER_SIZE / 2, y + PLAYER_SIZE / 2, 15, 'hurt'); // More particles!
         }
       }
     });
@@ -610,12 +645,15 @@ export default function App() {
     if (choice === currentPuzzle.answer) {
       setUnlockedGates(prev => [...prev, currentPuzzle.id]);
       const comboBonus = combo * 100;
-      const timeBonus = puzzleTimer * 10; // 10 points per second remaining
+      const timeBonus = puzzleTimer * 10;
       const newScore = player.score + 500 + comboBonus + timeBonus;
       
       setPlayer(prev => ({ ...prev, score: newScore }));
       setCombo(prev => prev + 1);
       setComboTimer(Date.now());
+      
+      // Visual feedback - particles!
+      particleSystemRef.current.emit(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 30, 'collect');
       
       // Update stats - correct answer
       const newProgress = {
@@ -663,6 +701,7 @@ export default function App() {
       setPlayer(prev => ({ ...prev, score: Math.max(0, prev.score - 50) }));
       setLastWrongAnswer(choice);
       setShowExplanation(true);
+      setScreenShake(8); // Screen shake on wrong answer!
       
       // Update stats - wrong answer
       const newProgress = {
@@ -807,7 +846,13 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className="relative w-full max-w-[95vw] h-[85vh] bg-slate-950 rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.5)] border-[12px] border-red-950 p-1">
+      <div 
+        className="relative w-full max-w-[95vw] h-[85vh] bg-slate-950 rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.5)] border-[12px] border-red-950 p-1"
+        style={{
+          transform: screenShake > 0 ? `translate(${Math.sin(Date.now() / 50) * screenShake}px, ${Math.cos(Date.now() / 50) * screenShake}px)` : 'none',
+          transition: 'transform 0.1s'
+        }}
+      >
         <canvas 
           ref={canvasRef}
           width={CANVAS_WIDTH}
@@ -816,6 +861,34 @@ export default function App() {
         />
 
         <AnimatePresence>
+          {/* Loading Screen */}
+          {isLoading && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/95 backdrop-blur flex flex-col items-center justify-center z-50"
+            >
+              <div className="text-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-20 h-20 border-4 border-red-900 border-t-red-500 rounded-full mx-auto mb-6"
+                />
+                <h2 className="text-2xl font-bold text-red-400 mb-4 font-game">Loading Nightmare...</h2>
+                <div className="w-64 h-4 bg-slate-800 rounded-full overflow-hidden border-2 border-red-900">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-red-900 to-red-600"
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${loadingProgress}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <p className="text-red-300 mt-3 text-sm">{loadingProgress}%</p>
+              </div>
+            </motion.div>
+          )}
+
           {gameState === 'title' && (
             <motion.div 
               initial={{ opacity: 0 }}
@@ -834,9 +907,47 @@ export default function App() {
                 ESCAPE THE<br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-900 text-6xl">NIGHTMARE</span>
               </h1>
-              <p className="text-red-300 mb-12 max-w-md text-xl font-medium leading-relaxed">
+              <p className="text-red-300 mb-8 max-w-md text-xl font-medium leading-relaxed">
                 Trapped in a dark dimension. Solve advanced puzzles to unlock the gates and escape before it's too late...
               </p>
+              
+              {/* Difficulty Selector */}
+              <div className="mb-8">
+                <p className="text-red-400 text-sm mb-3 font-bold">SELECT DIFFICULTY:</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDifficulty('easy')}
+                    className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                      difficulty === 'easy' 
+                        ? 'bg-green-700 text-white border-4 border-green-500 scale-110' 
+                        : 'bg-slate-800 text-green-400 border-2 border-green-800 hover:bg-slate-700'
+                    }`}
+                  >
+                    😊 EASY<br/><span className="text-xs">30s timer</span>
+                  </button>
+                  <button
+                    onClick={() => setDifficulty('medium')}
+                    className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                      difficulty === 'medium' 
+                        ? 'bg-yellow-700 text-white border-4 border-yellow-500 scale-110' 
+                        : 'bg-slate-800 text-yellow-400 border-2 border-yellow-800 hover:bg-slate-700'
+                    }`}
+                  >
+                    😐 MEDIUM<br/><span className="text-xs">20s timer</span>
+                  </button>
+                  <button
+                    onClick={() => setDifficulty('hard')}
+                    className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                      difficulty === 'hard' 
+                        ? 'bg-red-700 text-white border-4 border-red-500 scale-110' 
+                        : 'bg-slate-800 text-red-400 border-2 border-red-800 hover:bg-slate-700'
+                    }`}
+                  >
+                    😈 HARD<br/><span className="text-xs">15s timer</span>
+                  </button>
+                </div>
+              </div>
+              
               <div className="flex gap-4">
                 <button 
                   onClick={() => setGameState('levelSelect')}
