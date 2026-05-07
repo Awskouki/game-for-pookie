@@ -48,6 +48,9 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [puzzleTimer, setPuzzleTimer] = useState(20);
   const puzzleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [lastWrongAnswer, setLastWrongAnswer] = useState<string | null>(null);
+  const [showStats, setShowStats] = useState(false);
   
   const [player, setPlayer] = useState<PlayerState>({
     x: 50, y: GROUND_Y, velocityY: 0, health: 5, maxHealth: 5, // More health!
@@ -614,37 +617,71 @@ export default function App() {
       setCombo(prev => prev + 1);
       setComboTimer(Date.now());
       
+      // Update stats - correct answer
+      const newProgress = {
+        ...progress,
+        completedPuzzles: [...progress.completedPuzzles, currentPuzzle.id],
+        lastCheckpoint: {
+          x: currentLevel?.gates.find(g => g.gateId === currentPuzzle.id)?.x! + 74,
+          y: GROUND_Y,
+          gateId: currentPuzzle.id,
+          score: newScore
+        },
+        stats: {
+          totalPuzzles: (progress.stats?.totalPuzzles || 0) + 1,
+          correctAnswers: (progress.stats?.correctAnswers || 0) + 1,
+          wrongAnswers: progress.stats?.wrongAnswers || 0,
+          fastestTime: Math.min(progress.stats?.fastestTime || 20, 20 - puzzleTimer),
+          mathCorrect: (progress.stats?.mathCorrect || 0) + (currentPuzzle.type === 'math' ? 1 : 0),
+          chemistryCorrect: (progress.stats?.chemistryCorrect || 0) + (currentPuzzle.type === 'chemistry' ? 1 : 0),
+          physicsCorrect: (progress.stats?.physicsCorrect || 0) + (currentPuzzle.type === 'physics' ? 1 : 0),
+          logicCorrect: (progress.stats?.logicCorrect || 0) + (currentPuzzle.type === 'logic' ? 1 : 0),
+        }
+      };
+      
       // Create checkpoint at this gate
       const gate = currentLevel?.gates.find(g => g.gateId === currentPuzzle.id);
       if (gate) {
         const checkpoint = {
-          x: gate.x + gate.width + 50, // Spawn just past the gate
+          x: gate.x + gate.width + 50,
           y: GROUND_Y,
           score: newScore
         };
         setCurrentCheckpoint(checkpoint);
-        
-        // Save checkpoint to progress
-        const newProgress = {
-          ...progress,
-          completedPuzzles: [...progress.completedPuzzles, currentPuzzle.id],
-          lastCheckpoint: {
-            x: checkpoint.x,
-            y: checkpoint.y,
-            gateId: currentPuzzle.id,
-            score: checkpoint.score
-          }
-        };
-        setProgress(newProgress);
-        saveProgress(newProgress);
       }
       
+      setProgress(newProgress);
+      saveProgress(newProgress);
       setGameState('playing');
       setCurrentPuzzle(null);
+      setShowExplanation(false);
+      setLastWrongAnswer(null);
       if (soundEnabled) audioSystem.playSound('gate');
     } else {
+      // Wrong answer - show explanation
       setWrongAttempts(prev => prev + 1);
       setPlayer(prev => ({ ...prev, score: Math.max(0, prev.score - 50) }));
+      setLastWrongAnswer(choice);
+      setShowExplanation(true);
+      
+      // Update stats - wrong answer
+      const newProgress = {
+        ...progress,
+        stats: {
+          ...progress.stats,
+          totalPuzzles: (progress.stats?.totalPuzzles || 0) + 1,
+          correctAnswers: progress.stats?.correctAnswers || 0,
+          wrongAnswers: (progress.stats?.wrongAnswers || 0) + 1,
+          fastestTime: progress.stats?.fastestTime || 20,
+          mathCorrect: progress.stats?.mathCorrect || 0,
+          chemistryCorrect: progress.stats?.chemistryCorrect || 0,
+          physicsCorrect: progress.stats?.physicsCorrect || 0,
+          logicCorrect: progress.stats?.logicCorrect || 0,
+        }
+      };
+      setProgress(newProgress);
+      saveProgress(newProgress);
+      
       if (soundEnabled) audioSystem.playSound('wrong');
       if (wrongAttempts >= 2) setShowHint(true);
     }
@@ -919,6 +956,37 @@ export default function App() {
                   </motion.div>
                 )}
 
+                {showExplanation && currentPuzzle.explanation && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mb-6 p-6 bg-red-900/30 rounded-2xl border-4 border-red-600"
+                  >
+                    <div className="text-center mb-4">
+                      <span className="text-red-400 font-bold text-lg">❌ Wrong Answer!</span>
+                      {lastWrongAnswer && (
+                        <p className="text-red-300 text-sm mt-2">You chose: {lastWrongAnswer}</p>
+                      )}
+                    </div>
+                    <div className="bg-green-950/50 p-4 rounded-xl border-2 border-green-700 mb-4">
+                      <p className="text-green-300 font-bold text-center">✓ Correct Answer: {currentPuzzle.answer}</p>
+                    </div>
+                    <div className="text-yellow-200 text-sm leading-relaxed">
+                      <p className="font-bold mb-2">📚 Explanation:</p>
+                      <p>{currentPuzzle.explanation}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowExplanation(false);
+                        setLastWrongAnswer(null);
+                      }}
+                      className="mt-4 w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-xl transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   {currentPuzzle.options.map((option) => (
                     <motion.button
@@ -971,6 +1039,12 @@ export default function App() {
                     Choose Nightmare
                   </button>
                   <button 
+                    onClick={() => setShowStats(true)}
+                    className="bg-slate-800 text-yellow-300 px-10 py-5 rounded-2xl font-bold hover:bg-slate-700 transition-colors text-xl border-2 border-yellow-700 flex items-center justify-center gap-2"
+                  >
+                    <Trophy className="w-6 h-6" /> View Stats
+                  </button>
+                  <button 
                     onClick={() => {
                       setGameState('title');
                       setCurrentLevel(null);
@@ -981,6 +1055,84 @@ export default function App() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Stats Modal */}
+          {showStats && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60]"
+              onClick={() => setShowStats(false)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                className="bg-slate-900 rounded-[3rem] p-12 max-w-2xl w-full mx-4 shadow-[0_0_50px_rgba(220,38,38,0.5)] border-4 border-yellow-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="text-4xl font-black text-yellow-400 mb-8 font-game text-center">📊 Learning Stats</h2>
+                
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-slate-800 p-4 rounded-xl border-2 border-green-700">
+                    <p className="text-green-400 text-sm">Total Puzzles</p>
+                    <p className="text-3xl font-bold text-white">{progress.stats?.totalPuzzles || 0}</p>
+                  </div>
+                  <div className="bg-slate-800 p-4 rounded-xl border-2 border-blue-700">
+                    <p className="text-blue-400 text-sm">Accuracy</p>
+                    <p className="text-3xl font-bold text-white">
+                      {progress.stats?.totalPuzzles ? 
+                        Math.round((progress.stats.correctAnswers / progress.stats.totalPuzzles) * 100) : 0}%
+                    </p>
+                  </div>
+                  <div className="bg-slate-800 p-4 rounded-xl border-2 border-green-700">
+                    <p className="text-green-400 text-sm">Correct</p>
+                    <p className="text-3xl font-bold text-green-400">{progress.stats?.correctAnswers || 0}</p>
+                  </div>
+                  <div className="bg-slate-800 p-4 rounded-xl border-2 border-red-700">
+                    <p className="text-red-400 text-sm">Wrong</p>
+                    <p className="text-3xl font-bold text-red-400">{progress.stats?.wrongAnswers || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800 p-6 rounded-xl border-2 border-purple-700 mb-6">
+                  <h3 className="text-purple-400 font-bold mb-4 text-center">Subject Mastery</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg">
+                      <span className="text-blue-300">📐 Math</span>
+                      <span className="font-bold text-white">{progress.stats?.mathCorrect || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg">
+                      <span className="text-green-300">🧪 Chemistry</span>
+                      <span className="font-bold text-white">{progress.stats?.chemistryCorrect || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg">
+                      <span className="text-yellow-300">⚡ Physics</span>
+                      <span className="font-bold text-white">{progress.stats?.physicsCorrect || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg">
+                      <span className="text-purple-300">🧠 Logic</span>
+                      <span className="font-bold text-white">{progress.stats?.logicCorrect || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800 p-4 rounded-xl border-2 border-yellow-700 mb-6">
+                  <p className="text-yellow-400 text-sm text-center">Fastest Answer</p>
+                  <p className="text-2xl font-bold text-white text-center">
+                    {progress.stats?.fastestTime ? `${progress.stats.fastestTime}s` : 'N/A'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowStats(false)}
+                  className="w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded-xl transition-colors text-xl"
+                >
+                  Close
+                </button>
+              </motion.div>
             </motion.div>
           )}
 

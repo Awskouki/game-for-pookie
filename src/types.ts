@@ -18,6 +18,7 @@ export interface Puzzle {
   prompt: string;
   difficulty: number;
   hint?: string;
+  explanation?: string;
 }
 
 export interface GameObject {
@@ -112,4 +113,14 @@ export interface GameProgress {
   achievements: string[];
   completedPuzzles: number[];
   lastCheckpoint?: Checkpoint;
+  stats?: {
+    totalPuzzles: number;
+    correctAnswers: number;
+    wrongAnswers: number;
+    fastestTime: number;
+    mathCorrect: number;
+    chemistryCorrect: number;
+    physicsCorrect: number;
+    logicCorrect: number;
+  };
 }
