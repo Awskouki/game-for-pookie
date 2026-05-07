@@ -1384,19 +1384,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-3">
-          <kbd className="px-4 py-2 bg-slate-800 rounded-xl border-2 border-red-900 shadow-sm text-red-400 font-black text-sm">W A S D</kbd>
-          <span className="text-red-400 font-bold text-sm">or</span>
-          <kbd className="px-4 py-2 bg-slate-800 rounded-xl border-2 border-red-900 shadow-sm text-red-400 font-black text-sm">ARROWS</kbd>
-          <span className="text-red-400 font-bold text-sm">TO ESCAPE</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <kbd className="px-4 py-2 bg-slate-800 rounded-xl border-2 border-red-900 shadow-sm text-red-400 font-black text-sm">ESC</kbd>
-          <span className="text-red-400 font-bold text-sm">TO PAUSE</span>
-        </div>
-      </div>
     
       <div className="fixed bottom-4 left-0 right-0 text-center">
          <span className="text-[8px] font-game text-red-900 opacity-60 uppercase tracking-[0.4em]">
