@@ -238,11 +238,69 @@ export default function App() {
     velocityY += GRAVITY;
     let nextY = y + velocityY;
 
+    // Ground collision
+    let onGround = false;
     if (nextY >= GROUND_Y) {
       nextY = GROUND_Y;
       velocityY = 0;
       isJumping = false;
       hasDoubleJumped = false;
+      onGround = true;
+    }
+
+    // Platform collision detection
+    if (!onGround) {
+      currentLevel.obstacles.forEach(obstacle => {
+        if (obstacle.type === 'platform' || obstacle.type === 'obstacle') {
+          // Check if player is falling onto platform from above
+          const playerBottom = nextY + PLAYER_SIZE;
+          const playerTop = nextY;
+          const playerLeft = nextX;
+          const playerRight = nextX + PLAYER_SIZE;
+          
+          const platformTop = obstacle.y;
+          const platformBottom = obstacle.y + obstacle.height;
+          const platformLeft = obstacle.x;
+          const platformRight = obstacle.x + obstacle.width;
+          
+          // Horizontal overlap check
+          const horizontalOverlap = playerRight > platformLeft && playerLeft < platformRight;
+          
+          // Landing on top of platform
+          if (horizontalOverlap && 
+              velocityY > 0 && 
+              y + PLAYER_SIZE <= platformTop && 
+              playerBottom >= platformTop && 
+              playerBottom <= platformTop + 20) {
+            nextY = platformTop - PLAYER_SIZE;
+            velocityY = 0;
+            isJumping = false;
+            hasDoubleJumped = false;
+            onGround = true;
+          }
+          
+          // Hitting platform from below
+          if (horizontalOverlap && 
+              velocityY < 0 && 
+              playerTop <= platformBottom && 
+              playerTop >= platformBottom - 20) {
+            nextY = platformBottom;
+            velocityY = 0;
+          }
+          
+          // Side collisions (prevent walking through platforms)
+          if (playerBottom > platformTop + 10 && playerTop < platformBottom - 10) {
+            // Coming from left
+            if (x + PLAYER_SIZE <= platformLeft && nextX + PLAYER_SIZE > platformLeft) {
+              nextX = platformLeft - PLAYER_SIZE;
+            }
+            // Coming from right
+            if (x >= platformRight && nextX < platformRight) {
+              nextX = platformRight;
+            }
+          }
+        }
+      });
     }
 
     const collidingGate = currentLevel.gates.find(gate => 
