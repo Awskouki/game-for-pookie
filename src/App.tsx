@@ -1001,43 +1001,64 @@ export default function App() {
 
       {/* Mobile Touch Controls */}
       {isMobile && gameState === 'playing' && (
-        <div className="fixed bottom-8 left-0 right-0 flex justify-between px-8 pointer-events-none z-50">
+        <div className="fixed bottom-4 left-0 right-0 flex justify-between items-end px-4 pointer-events-none z-50">
           {/* Left side - D-Pad */}
-          <div className="relative w-40 h-40 pointer-events-auto">
+          <div className="relative w-48 h-48 pointer-events-auto">
+            {/* Center circle for visual reference */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-slate-900/50 rounded-full border-2 border-red-900/50"></div>
+            
             {/* Left */}
             <button
-              onTouchStart={() => handleTouchControl('ArrowLeft', true)}
-              onTouchEnd={() => handleTouchControl('ArrowLeft', false)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 bg-red-900/80 backdrop-blur rounded-lg border-2 border-red-700 active:bg-red-800 flex items-center justify-center text-white font-bold text-xl shadow-lg"
+              onTouchStart={(e) => { e.preventDefault(); handleTouchControl('ArrowLeft', true); }}
+              onTouchEnd={(e) => { e.preventDefault(); handleTouchControl('ArrowLeft', false); }}
+              onTouchCancel={(e) => { e.preventDefault(); handleTouchControl('ArrowLeft', false); }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-16 h-16 bg-red-900/90 backdrop-blur rounded-xl border-4 border-red-700 active:bg-red-800 active:scale-95 flex items-center justify-center text-white font-bold text-3xl shadow-2xl transition-all touch-none"
             >
               ←
             </button>
+            
             {/* Right */}
             <button
-              onTouchStart={() => handleTouchControl('ArrowRight', true)}
-              onTouchEnd={() => handleTouchControl('ArrowRight', false)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 bg-red-900/80 backdrop-blur rounded-lg border-2 border-red-700 active:bg-red-800 flex items-center justify-center text-white font-bold text-xl shadow-lg"
+              onTouchStart={(e) => { e.preventDefault(); handleTouchControl('ArrowRight', true); }}
+              onTouchEnd={(e) => { e.preventDefault(); handleTouchControl('ArrowRight', false); }}
+              onTouchCancel={(e) => { e.preventDefault(); handleTouchControl('ArrowRight', false); }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-16 h-16 bg-red-900/90 backdrop-blur rounded-xl border-4 border-red-700 active:bg-red-800 active:scale-95 flex items-center justify-center text-white font-bold text-3xl shadow-2xl transition-all touch-none"
             >
               →
             </button>
-            {/* Up */}
+            
+            {/* Up/Jump */}
             <button
-              onTouchStart={() => handleTouchControl('ArrowUp', true)}
-              onTouchEnd={() => handleTouchControl('ArrowUp', false)}
-              className="absolute left-1/2 -translate-x-1/2 top-0 w-12 h-12 bg-red-900/80 backdrop-blur rounded-lg border-2 border-red-700 active:bg-red-800 flex items-center justify-center text-white font-bold text-xl shadow-lg"
+              onTouchStart={(e) => { e.preventDefault(); handleTouchControl('ArrowUp', true); }}
+              onTouchEnd={(e) => { e.preventDefault(); handleTouchControl('ArrowUp', false); }}
+              onTouchCancel={(e) => { e.preventDefault(); handleTouchControl('ArrowUp', false); }}
+              className="absolute left-1/2 -translate-x-1/2 top-0 w-16 h-16 bg-red-900/90 backdrop-blur rounded-xl border-4 border-red-700 active:bg-red-800 active:scale-95 flex items-center justify-center text-white font-bold text-3xl shadow-2xl transition-all touch-none"
             >
               ↑
             </button>
+            
+            {/* Down (optional - for future use) */}
+            <button
+              onTouchStart={(e) => { e.preventDefault(); handleTouchControl('ArrowDown', true); }}
+              onTouchEnd={(e) => { e.preventDefault(); handleTouchControl('ArrowDown', false); }}
+              onTouchCancel={(e) => { e.preventDefault(); handleTouchControl('ArrowDown', false); }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-0 w-16 h-16 bg-red-900/90 backdrop-blur rounded-xl border-4 border-red-700 active:bg-red-800 active:scale-95 flex items-center justify-center text-white font-bold text-3xl shadow-2xl transition-all touch-none"
+            >
+              ↓
+            </button>
           </div>
 
-          {/* Right side - Jump Button */}
-          <div className="pointer-events-auto">
+          {/* Right side - Action Buttons */}
+          <div className="flex flex-col gap-3 pointer-events-auto">
+            {/* Jump Button (Primary) */}
             <button
-              onTouchStart={() => handleTouchControl(' ', true)}
-              onTouchEnd={() => handleTouchControl(' ', false)}
-              className="w-20 h-20 bg-red-600/80 backdrop-blur rounded-full border-4 border-red-500 active:bg-red-700 flex items-center justify-center text-white font-bold text-sm shadow-lg"
+              onTouchStart={(e) => { e.preventDefault(); handleTouchControl(' ', true); }}
+              onTouchEnd={(e) => { e.preventDefault(); handleTouchControl(' ', false); }}
+              onTouchCancel={(e) => { e.preventDefault(); handleTouchControl(' ', false); }}
+              className="w-24 h-24 bg-red-600/90 backdrop-blur rounded-full border-4 border-red-500 active:bg-red-700 active:scale-95 flex flex-col items-center justify-center text-white font-bold shadow-2xl transition-all touch-none"
             >
-              JUMP
+              <span className="text-2xl">↑</span>
+              <span className="text-xs mt-1">JUMP</span>
             </button>
           </div>
         </div>

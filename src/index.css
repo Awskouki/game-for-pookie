@@ -90,3 +90,27 @@
 .shake-animation {
   animation: shake 0.5s ease-in-out infinite;
 }
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  #root {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
